@@ -5,5 +5,5 @@ use data::buns;
 
 fn main() {
     // test stuff
-    println!("{}", buns::MAP.get("shocked").unwrap());
+    println!("{}", buns::BUNS.get("shy").unwrap());
 }

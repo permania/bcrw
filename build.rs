@@ -1,8 +1,10 @@
+use quote::quote;
 use std::{collections::HashMap, env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:warning=build script started");
     println!("cargo:rerun-if-changed=data.bun");
+
     let p = std::path::Path::new("data.bun");
     if !p.exists() {
         panic!("where are the bunnies??");
@@ -12,34 +14,34 @@ fn main() {
     let contents = fs::read_to_string(&input).unwrap();
     let parsed = parse_something(contents);
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    fs::write(out_dir.join("buns.rs"), parsed).unwrap();
+
+    fs::write(out_dir.join("buns.rs"), parsed.to_string()).unwrap();
 }
 
-fn add_line(to: &mut String, line: &str) -> () {
-    to.push_str(line)
-}
+fn parse_something(s: String) -> proc_macro2::TokenStream {
+    let mut map = HashMap::new();
 
-fn parse_something(s: String) -> String {
-    let mut lines = s.lines();
-    let mut res = String::new();
-    res.push_str("use std::sync::LazyLock;");
-    res.push_str("use std::collections::HashMap;");
-
-    res.push_str("pub static MAP: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| { let mut m = HashMap::new();");
-    while let Some(name) = lines.next() {
-        let second1 = lines.next().expect("expected 2 lines but file ended (1)");
-        let second2 = lines.next().expect("expected 2 lines but file ended (2)");
-        let bunny = format!("{}\n{}", second1, second2);
+    let mut lines = s.lines().peekable();
+    while lines.peek().is_some() {
+        let name = lines.next().unwrap().trim();
+        let s1 = lines.next().expect("expected content line 1");
+        let s2 = lines.next().expect("expected content line 2");
+        let bunny = format!("{}\n{}", s1, s2);
 
         println!("cargo:warning=adding {}: {:?}", name, bunny);
 
-        add_line(
-            &mut res,
-            &format!(r##"m.insert("{}", r#"{}"#);"##, name, bunny),
-        );
+        map.insert(name, bunny);
     }
 
-    res.push_str("m });");
+    let buns = map.iter().map(|(k, v)| quote! { m.insert(#k, #v); });
 
-    res
+    quote! {
+    use std::{sync::LazyLock, collections::HashMap};
+
+    pub static BUNS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+	let mut m = HashMap::<&'static str, &'static str>::new();
+	#(#buns)*
+	m
+    });
+    }
 }
