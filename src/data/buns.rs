@@ -11,9 +11,10 @@ pub fn print_bun(bun: &str) -> Result<(), BunError> {
     Ok(())
 }
 
-pub fn random_bun(args: RandArgs) -> () {
+pub fn random_bun(args: RandArgs) {
     let mut rng = rand::rng();
     let (name, bun) = BUNS.iter().choose(&mut rng).unwrap();
+
     println!(
         "{}{}",
         (!args.hide_name)
@@ -27,11 +28,7 @@ pub fn list_buns(args: ListArgs) {
     BUNS.iter().for_each(|(k, v)| {
         println!(
             "{k}{}",
-            if args.show {
-                format!("\n{}", v)
-            } else {
-                String::new()
-            }
+            (args.show).then(|| format!("\n{}", v)).unwrap_or_default()
         )
     });
 }

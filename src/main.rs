@@ -11,6 +11,7 @@ fn main() {
     let cli = BunArgs::parse();
 
     match cli.cmd {
+        // `ShowBun` sets the value of `bun` to "normal" if none is specified, `bun show` is equivalent to `bun show normal`.
         Show(ShowBun { bunny: bun }) => handle_error(buns::print_bun(&bun)),
         Rand(a) => buns::random_bun(a),
         List(a) => buns::list_buns(a),
